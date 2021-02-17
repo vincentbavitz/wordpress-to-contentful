@@ -142,8 +142,8 @@ function transform(
       slug: {
         [CONTENTFUL_LOCALE]: post.slug,
       },
-      publishedDate: {
-        [CONTENTFUL_LOCALE]: post.publishedDate,
+      date: {
+        [CONTENTFUL_LOCALE]: post.date,
       },
       featureImage: {
         [CONTENTFUL_LOCALE]: {

@@ -1,8 +1,9 @@
+import * as parser from "contentful-html-to-richtext";
+import { RootContentfulNode } from "contentful-html-to-richtext";
 import fs from "fs-extra";
 import html2plaintext from "html2plaintext";
 import path from "path";
 import { Observable } from "rxjs";
-import TurndownService, { Options } from "turndown";
 import {
   findByGlob,
   MOCK_OBSERVER,
@@ -18,7 +19,7 @@ export interface Redirect {
 }
 
 export interface WpPost {
-  _links: string[];
+  _links: any;
   guide: string;
   excerpt: {
     rendered: string;
@@ -37,7 +38,7 @@ export interface WpPost {
   date: string;
   modified: string;
   modified_gmt: string;
-  tags: string[];
+  tags: number[];
   sticky: boolean;
   content: {
     rendered: string;
@@ -46,31 +47,21 @@ export interface WpPost {
     rendered: string;
   };
   featured_media: any;
+  link: string;
 }
 
 export interface CfPost {
   title: string;
   author: string;
   description: string;
+  tags: number[];
   slug: string;
-  body: string;
-  publishedDate: string;
+  body: RootContentfulNode;
+  date: string;
   category: number;
-  featuredMedia: any;
+  featuredMedia: number;
+  link: string;
 }
-
-const TURNDOWN_OPTS: Options = {
-  headingStyle: "atx",
-  hr: "---",
-  bulletListMarker: "*",
-  codeBlockStyle: "fenced",
-  emDelimiter: "*",
-  strongDelimiter: "__",
-  linkStyle: "inlined",
-  linkReferenceStyle: "full",
-};
-
-const turndownService = new TurndownService(TURNDOWN_OPTS);
 
 const extractImages = (post: any) => {
   const regex = /<img.*?src="(.*?)"[\s\S]*?alt="(.*?)"/g;
@@ -89,10 +80,10 @@ const extractImages = (post: any) => {
   return post;
 };
 
-function convertToMarkdown(post: any) {
+function convertToRichText(post: CfPost): CfPost {
   return {
     ...post,
-    body: turndownService.turndown(post.body),
+    body: parser.generateRichText(post.body),
   };
 }
 
@@ -103,14 +94,16 @@ const transform = (wpPost: WpPost) => {
       wpPost.excerpt.rendered || ""
     ),
     author: wpPost.author,
-    publishedDate: wpPost.date_gmt + "+00:00",
+    date: wpPost.date_gmt + "+00:00",
     body: wpPost.content.rendered,
     slug: wpPost.slug,
     category: wpPost.categories[0],
     featuredMedia: wpPost.featured_media,
+    tags: wpPost.tags,
+    link: wpPost.link,
   };
 
-  return [post.slug, convertToMarkdown(extractImages(post))];
+  return { slug: post.slug, post: convertToRichText(extractImages(post)) };
 };
 
 const writePost = (name: string, data: any) =>
@@ -153,7 +146,7 @@ const transformByPage = async (observer = MOCK_OBSERVER) => {
       count += 1;
       observer.next(`Processing post ${count}`);
       // transform the wordpress post into the expected format
-      const [name, data] = transform(post);
+      const { slug: name, post: data } = transform(post);
       // save relevant information for redirects
       const { link, slug } = data;
       redirects.push({ link, slug });

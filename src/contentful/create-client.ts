@@ -1,4 +1,4 @@
-import contentful from "contentful-management";
+import { createClient } from "contentful-management";
 import {
   CONTENTFUL_CMA_TOKEN,
   CONTENTFUL_ENV_NAME,
@@ -20,7 +20,7 @@ const get = async (
     envName: "",
   }
 ) => {
-  const client = contentful.createClient({
+  const client = createClient({
     accessToken,
     logHandler: (level, data) => console.log(`${level} | ${data}`),
   });
